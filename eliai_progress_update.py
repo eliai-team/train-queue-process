@@ -20,6 +20,29 @@ bucket_name = os.environ.get('BUCKET_NAME') or "eliai-server"
 server_domain = os.environ.get('STORAGE_DOMAIN') or "https://eliai-server.hn.ss.bfcplatform.vn/"
 
 
+from threading import Timer
+
+def debounce(wait_time):
+  """Debounces a function by delaying its execution until after a certain wait time.
+
+  Args:
+      wait_time: The time in milliseconds to wait before executing the function.
+
+  Returns:
+      A decorator function that can be applied to other functions.
+  """
+  def decorator(func):
+    timer = None
+
+    def wrapper(*args, **kwargs):
+      nonlocal timer
+      if timer:
+        timer.cancel()
+      timer = Timer(wait_time, func, args=args, kwargs=kwargs)
+      timer.start()
+    return wrapper
+  return decorator
+
 def s3Storage_base64_upload(image_bytes: bytes, train_id: str, epoch: int):
     # image_binary = base64.b64decode(base64_image)
     object_key = f"training/{train_id}/samples/{train_id}_{epoch}.jpg"
@@ -34,7 +57,7 @@ def s3Storage_base64_upload(image_bytes: bytes, train_id: str, epoch: int):
     return server_domain + object_key
 
 
-
+@debounce(15)
 def progress_update(time_elaped, rate, avr_loss, epoch, n, total):
   print(f"rate: {rate}, total: {total}, n: {n}")
   remaining = (total - n) / rate if rate and total else 0
