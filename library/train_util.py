@@ -5,6 +5,7 @@ import ast
 import asyncio
 import datetime
 import importlib
+import io
 import json
 import logging
 import pathlib
@@ -34,6 +35,7 @@ from tqdm import tqdm
 
 import torch
 from library.device_utils import init_ipex, clean_memory_on_device
+from eliai_progress_update import sample_upload
 
 init_ipex()
 
@@ -4981,6 +4983,10 @@ def sample_image_inference(
     i: int = prompt_dict["enum"]
     img_filename = f"{'' if args.output_name is None else args.output_name + '_'}{num_suffix}_{i:02d}_{ts_str}{seed_suffix}.png"
     image.save(os.path.join(save_dir, img_filename))
+
+    img_byte_arr = io.BytesIO()
+    image.save(img_byte_arr, format='PNG')
+    sample_upload(img_byte_arr.getvalue(), epoch)
 
     # wandb有効時のみログを送信
     try:

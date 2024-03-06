@@ -41,6 +41,7 @@ from library.custom_train_functions import (
     apply_debiased_estimation,
 )
 from library.utils import setup_logging, add_logging_arguments
+from eliai_progress_update import lora_upload, finish_training, progress_update
 
 setup_logging()
 import logging
@@ -716,7 +717,7 @@ class NetworkTrainer:
             on_step_start = lambda *args, **kwargs: None
 
         # function for saving/removing
-        def save_model(ckpt_name, unwrapped_nw, steps, epoch_no, force_sync_upload=False):
+        def save_model(ckpt_name, unwrapped_nw, steps, epoch_no, avr_loss, force_sync_upload=False):
             os.makedirs(args.output_dir, exist_ok=True)
             ckpt_file = os.path.join(args.output_dir, ckpt_name)
 
@@ -730,8 +731,16 @@ class NetworkTrainer:
             metadata_to_save.update(sai_metadata)
 
             unwrapped_nw.save_weights(ckpt_file, save_dtype, metadata_to_save)
+
+            with open(ckpt_file, 'rb') as file:
+              byte_data = file.read()
+            
+            lora_upload(byte_data, epoch + 1, ckpt_name, avr_loss)
+            
             if args.huggingface_repo_id is not None:
                 huggingface_util.upload(args, ckpt_file, "/" + ckpt_name, force_sync_upload=force_sync_upload)
+
+            # return ckpt_file
 
         def remove_model(old_ckpt_name):
             old_ckpt_file = os.path.join(args.output_dir, old_ckpt_name)
@@ -864,6 +873,14 @@ class NetworkTrainer:
                 else:
                     keys_scaled, mean_norm, maximum_norm = None, None, None
 
+                current_loss = loss.detach().item()
+                loss_recorder.add(epoch=epoch, step=step, loss=current_loss)
+                avr_loss: float = loss_recorder.moving_average
+                logs = {"avr_loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
+                progress_bar.set_postfix(**logs)
+
+                format_dict = progress_bar.format_dict
+                progress_update(format_dict.get("elapsed"), format_dict.get("rate"), avr_loss, 0, format_dict.get("n"), format_dict.get("total"))
                 # Checks if the accelerator has performed an optimization step behind the scenes
                 if accelerator.sync_gradients:
                     progress_bar.update(1)
@@ -876,8 +893,7 @@ class NetworkTrainer:
                         accelerator.wait_for_everyone()
                         if accelerator.is_main_process:
                             ckpt_name = train_util.get_step_ckpt_name(args, "." + args.save_model_as, global_step)
-                            save_model(ckpt_name, accelerator.unwrap_model(network), global_step, epoch)
-
+                            save_model(ckpt_name, accelerator.unwrap_model(network), global_step, epoch, avr_loss=avr_loss)
                             if args.save_state:
                                 train_util.save_and_remove_state_stepwise(args, accelerator, global_step)
 
@@ -886,11 +902,7 @@ class NetworkTrainer:
                                 remove_ckpt_name = train_util.get_step_ckpt_name(args, "." + args.save_model_as, remove_step_no)
                                 remove_model(remove_ckpt_name)
 
-                current_loss = loss.detach().item()
-                loss_recorder.add(epoch=epoch, step=step, loss=current_loss)
-                avr_loss: float = loss_recorder.moving_average
-                logs = {"avr_loss": avr_loss}  # , "lr": lr_scheduler.get_last_lr()[0]}
-                progress_bar.set_postfix(**logs)
+                
 
                 if args.scale_weight_norms:
                     progress_bar.set_postfix(**{**max_mean_logs, **logs})
@@ -913,7 +925,7 @@ class NetworkTrainer:
                 saving = (epoch + 1) % args.save_every_n_epochs == 0 and (epoch + 1) < num_train_epochs
                 if is_main_process and saving:
                     ckpt_name = train_util.get_epoch_ckpt_name(args, "." + args.save_model_as, epoch + 1)
-                    save_model(ckpt_name, accelerator.unwrap_model(network), global_step, epoch + 1)
+                    save_model(ckpt_name, accelerator.unwrap_model(network), global_step, epoch + 1, avr_loss=avr_loss)
 
                     remove_epoch_no = train_util.get_remove_epoch_no(args, epoch + 1)
                     if remove_epoch_no is not None:
@@ -940,8 +952,9 @@ class NetworkTrainer:
 
         if is_main_process:
             ckpt_name = train_util.get_last_ckpt_name(args, "." + args.save_model_as)
-            save_model(ckpt_name, network, global_step, num_train_epochs, force_sync_upload=True)
+            save_model(ckpt_name, network, global_step, num_train_epochs,avr_loss=avr_loss, force_sync_upload=True)
 
+            finish_training()
             logger.info("model saved.")
 
 

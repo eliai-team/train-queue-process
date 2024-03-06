@@ -31,5 +31,8 @@ huggingface-hub==0.20.1
 open-clip-torch==2.20.0
 # For logging
 rich==13.7.0
+supabase
+redis
+boto3
 # for kohya_ss library
 -e .
