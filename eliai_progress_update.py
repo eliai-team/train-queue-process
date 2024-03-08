@@ -20,28 +20,36 @@ bucket_name = os.environ.get('BUCKET_NAME') or "eliai-server"
 server_domain = os.environ.get('STORAGE_DOMAIN') or "https://eliai-server.hn.ss.bfcplatform.vn/"
 
 
-from threading import Timer
+import time
+from functools import partial, wraps
 
-def debounce(wait_time):
-  """Debounces a function by delaying its execution until after a certain wait time.
+class TooSoon(Exception):
+  """Can't be called so soon"""
+  pass
 
-  Args:
-      wait_time: The time in milliseconds to wait before executing the function.
+class CoolDownDecorator(object):
+  def __init__(self,func,interval):
+    self.func = func
+    self.interval = interval
+    self.last_run = 0
+  def __get__(self,obj,objtype=None):
+    if obj is None:
+      return self.func
+    return partial(self,obj)
+  def __call__(self,*args,**kwargs):
+    now = time.time()
+    if now - self.last_run < self.interval:
+      # raise TooSoon("Call after {0} seconds".format(self.last_run + self.interval - now))
+      pass
+    else:
+      self.last_run = now
+      return self.func(*args,**kwargs)
 
-  Returns:
-      A decorator function that can be applied to other functions.
-  """
-  def decorator(func):
-    timer = None
-
-    def wrapper(*args, **kwargs):
-      nonlocal timer
-      if timer:
-        timer.cancel()
-      timer = Timer(wait_time, func, args=args, kwargs=kwargs)
-      timer.start()
-    return wrapper
-  return decorator
+def CoolDown(interval):
+  def applyDecorator(func):
+    decorator = CoolDownDecorator(func=func,interval=interval)
+    return wraps(func)(decorator)
+  return applyDecorator
 
 def s3Storage_base64_upload(image_bytes: bytes, train_id: str, epoch: int):
     # image_binary = base64.b64decode(base64_image)
@@ -57,7 +65,7 @@ def s3Storage_base64_upload(image_bytes: bytes, train_id: str, epoch: int):
     return server_domain + object_key
 
 
-@debounce(15)
+@CoolDown(15)
 def progress_update(time_elaped, rate, avr_loss, epoch, n, total):
   print(f"rate: {rate}, total: {total}, n: {n}")
   remaining = (total - n) / rate if rate and total else 0

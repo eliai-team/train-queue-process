@@ -89,7 +89,7 @@ def train(training_id):
   print("Data Accquire Success")
 
   #download checkpoint
-  # download_file(checkpoint_url, os.path.join(os.getcwd(), "basemodel.safetensors"))
+  download_file(checkpoint_url, os.path.join(os.getcwd(), "basemodel.safetensors"))
   print("Dowwnload ckpt Success")
 
   #download dataset
@@ -124,7 +124,7 @@ def train(training_id):
   write_basic_config(save_location=accelerate_config_file)
   # prompt_path = "/prompt.txt"
   try:
-    process = subprocess.run(f"accelerate launch --config_file={accelerate_config_file} --num_cpu_threads_per_process=1 train_network.py --dataset_config={dataset_config_filepath} --config_file={training_config_filepath} --sample_prompts={prompt_filepath}", shell=True, capture_output=True) 
+    process = subprocess.run(f"accelerate launch --config_file={accelerate_config_file} --num_cpu_threads_per_process=1 train_network.py --dataset_config={dataset_config_filepath} --config_file={training_config_filepath} --sample_prompts={prompt_filepath}", shell=True) 
     if process.returncode != 0:
       data, count = supabase.table('Trainings').update({
         "status": "failed"
