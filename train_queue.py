@@ -59,9 +59,10 @@ def config_overwrite(dataset_config_file, config_file, project_path):
     f.writelines(config_lines)
 
 
-def start_training(training_id):
+def start_training(training_id, log):
   data, count = supabase.table('Trainings').update({
-    "status": "training"
+    "status": "training",
+    "debug": log
   }).eq('id', training_id).execute()
 
 def read_txt_files(directory):
@@ -115,18 +116,23 @@ def caption(dataset_id, method, trigger_words, project_dir_path, images):
 
 
 def train(training_id):
-  start_training(training_id)
   data, count = supabase.table("Trainings").select("*, dataset: dataset_id(*)").eq("id", training_id).execute()
 
   data = data[1]
   # print(data[0])
   # return
   training_config = data[0]["config"]
-  dataset_config = data[0]["dataset"]["config"]
+  # dataset_config = data[0]["dataset"]["config"]
+  dataset_config = data[0]["dataset_config"]
 
   dataset = data[0]["dataset"]["images"]
 
-
+  log = {
+    "training_config": training_config,
+    "dataset_config": dataset_config,
+    "dataset": dataset
+  }
+  start_training(training_id, str(log))
 
 
   project_name = re.sub(r'\s+', '_', data[0]["dataset"]["name"]) 
