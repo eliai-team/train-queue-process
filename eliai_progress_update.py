@@ -9,7 +9,7 @@ import datetime
 
 training_id = os.environ.get("TRAINING_ID")
 
-url: str = os.environ.get('SUPABASE_ENDPOINT') or ""
+url: str = os.environ.get('SUPABASE_URL') or ""
 key: str = os.environ.get('SUPABASE_KEY') or ""
 supabase: Client = create_client(url, key)
 

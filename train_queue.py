@@ -12,7 +12,7 @@ import requests
 import redis
 from accelerate.utils import write_basic_config
 
-url: str = os.environ.get('SUPABASE_ENDPOINT') or ""
+url: str = os.environ.get('SUPABASE_URL') or ""
 key: str = os.environ.get('SUPABASE_KEY') or ""
 supabase: Client = create_client(url, key)
 
