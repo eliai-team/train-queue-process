@@ -219,7 +219,7 @@ def self_destroy():
 
 
 def queue_processing():
-  redis_uri = 'rediss://default:AVNS_p5SxXC8sjRJE8JkNqB9@task-queue-minhnhatdo0709-a715.a.aivencloud.com:17468'
+  redis_uri = os.environ.get("REDIS_URI") or ""
   while 1:
     train_request = None
 
