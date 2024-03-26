@@ -5,6 +5,7 @@ import boto3
 from supabase import Client, create_client
 import os
 import datetime
+import math
 
 
 training_id = os.environ.get("TRAINING_ID")
@@ -64,6 +65,13 @@ def s3Storage_base64_upload(image_bytes: bytes, train_id: str, epoch: int):
 
     return server_domain + object_key
 
+price_per_hour = 0.25
+price_per_second = 0.25 / 60 / 60
+margin = 3
+final_price = price_per_second * margin
+
+vnd = 24000
+credit_value = 120
 
 @CoolDown(15)
 def progress_update(time_elaped, rate, avr_loss, epoch, n, total):
@@ -79,6 +87,8 @@ def progress_update(time_elaped, rate, avr_loss, epoch, n, total):
   #   "steps": n,
   #   "total": total
   # }
+  setup_cost = 5
+  cost = setup_cost + math.ceil(time_elaped * final_price * vnd / credit_value)
 
   supabase.table("Trainings").update({
     'training_process_metadata':{
@@ -87,7 +97,8 @@ def progress_update(time_elaped, rate, avr_loss, epoch, n, total):
       "avr_loss": avr_loss,
       "steps": n,
       "total": total
-    } 
+    },
+    "cost": cost
   }).eq('id', training_id).execute()
 
 def cost_update(total_step):
