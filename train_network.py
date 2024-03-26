@@ -41,7 +41,7 @@ from library.custom_train_functions import (
     apply_debiased_estimation,
 )
 from library.utils import setup_logging, add_logging_arguments
-from eliai_progress_update import lora_upload, finish_training, progress_update
+from eliai_progress_update import lora_upload, finish_training, progress_update, cost_update
 
 setup_logging()
 import logging
@@ -481,6 +481,7 @@ class NetworkTrainer:
         # accelerator.print(f"  total train batch size (with parallel & distributed & accumulation) / 総バッチサイズ（並列学習、勾配合計含む）: {total_batch_size}")
         accelerator.print(f"  gradient accumulation steps / 勾配を合計するステップ数 = {args.gradient_accumulation_steps}")
         accelerator.print(f"  total optimization steps / 学習ステップ数: {args.max_train_steps}")
+        cost_update(args.max_train_steps)
 
         # TODO refactor metadata creation and move to util
         metadata = {

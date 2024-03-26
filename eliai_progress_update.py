@@ -9,8 +9,8 @@ import datetime
 
 training_id = os.environ.get("TRAINING_ID")
 
-url: str = os.environ.get('SUPABASE_ENDPOINT') or "https://rtfoijxfymuizzxzbnld.supabase.co"
-key: str = os.environ.get('SUPABASE_KEY') or "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ0Zm9panhmeW11aXp6eHpibmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTY1Nzc4MTQsImV4cCI6MjAxMjE1MzgxNH0.ChbqzCyTnUkrZ8VMie8y9fpu0xXB07fdSxVrNF9_psE"
+url: str = os.environ.get('SUPABASE_ENDPOINT') or ""
+key: str = os.environ.get('SUPABASE_KEY') or ""
 supabase: Client = create_client(url, key)
 
 s3client = boto3.client('s3', endpoint_url= os.environ.get('AWS_ENDPOINT') or 'https://hn.ss.bfcplatform.vn',
@@ -88,6 +88,14 @@ def progress_update(time_elaped, rate, avr_loss, epoch, n, total):
       "steps": n,
       "total": total
     } 
+  }).eq('id', training_id).execute()
+
+def cost_update(total_step):
+  setup_cost = 5
+  cost = setup_cost + total_step * 0.04
+
+  supabase.table("Trainings").update({
+    'cost': cost
   }).eq('id', training_id).execute()
 
 def start_training():
