@@ -1,0 +1,51 @@
+[model_arguments]
+v2 = false
+pretrained_model_name_or_path = "E:\EliAI\sd-scripts\basemodel.safetensors"
+
+[saving_arguments]
+save_model_as = "safetensors"
+
+[dataset_arguments]
+cache_latents = true
+
+[training_arguments]
+seed = 42
+xformers = true
+clip_skip = 1
+log_prefix = "test_upload_ds"
+output_dir = "E:\EliAI\sd-scripts\test_upload_ds\output"
+save_state = false
+logging_dir = "E:\EliAI\sd-scripts\test_upload_ds\_logs"
+output_name = "test_upload_ds"
+noise_offset = 0.05
+save_precision = "fp16"
+mixed_precision = "fp16"
+max_token_length = 225
+max_train_epochs = 200
+train_batch_size = 12
+weighted_captions = false
+save_last_n_epochs = 200
+save_every_n_epochs = 20
+max_data_loader_n_workers = 8
+persistent_data_loader_workers = true
+
+[optimizer_arguments]
+lr_scheduler = "cosine"
+learning_rate = 1
+optimizer_args = [ "weight_decay=0.05", "betas=[0.9,0.99]", "safeguard_warmup=False", "use_bias_correction=True", "d_coef=2",]
+optimizer_type = "Prodigy"
+lr_warmup_steps = 0
+
+[dreambooth_arguments]
+prior_loss_weight = 1
+
+[sample_prompt_arguments]
+sample_sampler = "euler_a"
+sample_every_n_epochs = 20
+
+[additional_network_arguments]
+unet_lr = 1
+network_dim = 64
+network_alpha = 64
+network_module = "networks.lora"
+text_encoder_lr = 1

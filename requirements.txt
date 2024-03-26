@@ -6,8 +6,8 @@ ftfy==6.1.1
 opencv-python==4.7.0.68
 einops==0.7.0
 pytorch-lightning==1.9.0
-# bitsandbytes==0.39.1
-tensorboard==2.10.1
+bitsandbytes==0.43.0
+# tensorboard==2.10.1
 safetensors==0.4.2
 # gradio==3.16.2
 altair==4.2.2
@@ -16,11 +16,11 @@ toml==0.10.2
 voluptuous==0.13.1
 huggingface-hub==0.20.1
 # for BLIP captioning
-# requests==2.28.2
-# timm==0.6.12
-# fairscale==0.4.13
+requests==2.28.2
+timm==0.6.12
+fairscale==0.4.13
 # for WD14 captioning (tensorflow)
-# tensorflow==2.10.1
+tensorflow==2.10.1
 # for WD14 captioning (onnx)
 # onnx==1.14.1
 # onnxruntime-gpu==1.16.0
@@ -35,4 +35,4 @@ supabase
 redis
 boto3
 # for kohya_ss library
--e .
+# -e .

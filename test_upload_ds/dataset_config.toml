@@ -1,0 +1,17 @@
+[[datasets]]
+
+[[datasets.subsets]]
+image_dir = "E:\EliAI\sd-scripts\test_upload_ds\dataset"
+num_repeats = 1
+
+[general]
+flip_aug = false
+resolution = 512
+keep_tokens = 1
+enable_bucket = true
+max_bucket_reso = 1024
+min_bucket_reso = 252
+shuffle_caption = true
+bucket_no_upscale = false
+bucket_reso_steps = 64
+caption_extension = ".txt"

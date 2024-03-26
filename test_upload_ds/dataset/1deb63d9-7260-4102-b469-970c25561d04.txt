@@ -1,0 +1,1 @@
+indoors, cup, no_humans, window, chair, table, bottle, plant, scenery, couch, potted_plant, lamp, carpet, rug

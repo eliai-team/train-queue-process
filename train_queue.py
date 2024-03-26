@@ -54,7 +54,7 @@ def config_overwrite(dataset_config_file, config_file, project_path):
     if "log_prefix" in line.strip():
       config_lines[i] = f'log_prefix = "{os.path.basename(project_path.rstrip("/"))}"\n'
     if "pretrained_model_name_or_path" in line.strip():
-      config_lines[i] = f'pretrained_model_name_or_path = "{os.path.join(os.getcwd(), "basemodel.safetensors")}"\n'
+      config_lines[i] = f'pretrained_model_name_or_path = "{os.path.join("/", "basemodel.safetensors")}"\n'
   with open(config_file, 'w') as f:
     f.writelines(config_lines)
 
@@ -63,6 +63,55 @@ def start_training(training_id):
   data, count = supabase.table('Trainings').update({
     "status": "training"
   }).eq('id', training_id).execute()
+
+def read_txt_files(directory):
+    file_contents = {}
+    for filename in os.listdir(directory):
+        if filename.endswith('.txt'):
+            with open(os.path.join(directory, filename), 'r') as file:
+                file_contents[filename] = file.read()
+    return file_contents
+
+
+def caption(dataset_id, method, trigger_words, project_dir_path, images):
+  # This will give you the full path to the script file
+  script_path = os.path.abspath(__file__)
+
+  # This will give you the directory of the script file
+  script_dir = os.path.dirname(script_path)
+  os.chdir(script_dir)
+  project_dir_path = os.path.join(project_dir_path, "dataset")
+  try:
+
+    print("\n⭐ Starting caption...\n")
+  
+    print(f"train_data_dir: {project_dir_path}")
+
+    script_name = ""
+    if method == "BLIP":
+      script_name = "make_captions.py"
+    else:
+      script_name = "tag_images_by_wd14_tagger.py"
+
+    return_code = subprocess.run(f"python {script_dir}/finetune/{script_name} --batch_size 8 --max_data_loader_n_workers 2  --caption_extension=.txt {project_dir_path}", shell=True) 
+
+    file_contents = read_txt_files(project_dir_path)
+    for filename, content in file_contents.items():
+
+      content = trigger_words + ", " + content
+
+      image_index = next((i for i, x in enumerate(images) if filename.replace(".txt", "") in x["image_url"]), None)
+      # caption_url = s3Storage_base64_upload(content_bytes, key)
+
+      images[image_index]["caption"] = content
+
+    supabase.table("Datasets").update({
+      "images": images,
+      "caption_status": "captioned"
+    }).eq("id", dataset_id).execute()
+
+  except subprocess.CalledProcessError as e:
+    raise ValueError("Failed to caption")
 
 
 def train(training_id):
@@ -89,7 +138,7 @@ def train(training_id):
   print("Data Accquire Success")
 
   #download checkpoint
-  download_file(checkpoint_url, os.path.join(os.getcwd(), "basemodel.safetensors"))
+  # download_file(checkpoint_url, os.path.join(os.getcwd(), "basemodel.safetensors"))
   print("Dowwnload ckpt Success")
 
   #download dataset
@@ -98,17 +147,27 @@ def train(training_id):
   os.makedirs(os.path.join(project_dir_path, "dataset") , exist_ok=True)
 
   for item in dataset:
-    caption_url = item.get("caption_url")
     image_url = item.get("image_url")
 
-    download_file(caption_url, os.path.join(project_dir_path, "dataset", caption_url.split("/")[-1] ))
     download_file(image_url,  os.path.join(project_dir_path, "dataset", image_url.split("/")[-1] ))
   print("Download File Success")
 
-  dataset_config_filepath = f"{project_dir_path}/dataset_config.toml"
+  # if data[0]["dataset"]["caption_status"] != "captioned":
+  dataset_id = data[0]["dataset"]["id"]
+  method = data[0]["dataset"]["caption_method"]
+  trigger_words = data[0]["dataset"]["trigger_words"]
+  proj_dir_path = project_dir_path
+  images = data[0]["dataset"]["images"]
+  caption(dataset_id, method, trigger_words, proj_dir_path, images)
+  print("Captioned")
+
+
+  # dataset_config_filepath = f"{project_dir_path}/dataset_config.toml"
+  dataset_config_filepath = os.path.join(project_dir_path, "dataset_config.toml")
   json_to_toml_file(dataset_config, dataset_config_filepath)
 
-  training_config_filepath = f"{project_dir_path}/training_config.toml"
+  # training_config_filepath = f"{project_dir_path}/training_config.toml"
+  training_config_filepath = os.path.join(proj_dir_path, "training_config.toml")
   json_to_toml_file(training_config, training_config_filepath)
 
   prompt_filepath = f"{project_dir_path}/prompt.txt"

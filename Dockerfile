@@ -1,14 +1,9 @@
 # Base image
 FROM python:3.10.9-slim
-
-
-
-
-
 # Use bash shell with pipefail option
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-ADD . .
+# ADD . .
 # Set the working directory
 WORKDIR /
 
@@ -31,10 +26,12 @@ RUN --mount=type=cache,target=/cache --mount=type=cache,target=/root/.cache/pip 
 
 
 # Install Python dependencies (Worker Template)
-# COPY builder/requirements.txt /requirements.txt
+# COPY README-ja.md README.md
+COPY requirements.txt ./requirements.txt
+COPY basemodel.safetensors ./basemodel.safetensors
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --upgrade pip && \
-    pip install --upgrade -r requirements.txt --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu118 && \
+    pip install --upgrade -r ./requirements.txt --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu118 && \
     pip install -U xformers --index-url https://download.pytorch.org/whl/cu118 && \
     pip install prodigyopt && \
     pip install -U dadaptation
@@ -45,5 +42,8 @@ RUN wget https://raw.githubusercontent.com/vast-ai/vast-python/master/vast.py -O
 # ADD src /sd-scripts
 
 # WORKDIR /sd-scripts
+COPY run.sh ./run.sh
+RUN chmod +x ./run.sh
 
-CMD python3 -u train_queue.py
+
+CMD ./run.sh
