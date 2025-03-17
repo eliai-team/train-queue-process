@@ -176,7 +176,9 @@ def lora_upload(lora: bytes, epoch: int, ckpt_name:str,  avr_loss:float):
   print(f"trained_epochs: {trained_epochs}")
   update_epoch_index = next((i for i, x in enumerate(trained_epochs) if x["epoch_num"] == epoch), None)
   print(f"epoch_index: {update_epoch_index}")
-
+    
+  avr_loss = np.nan_to_num(avr_loss, nan=0.0) 
+    
   update_epoch = trained_epochs[update_epoch_index]
   update_epoch['lora_url'] = lora_url
   update_epoch['loss'] = avr_loss
