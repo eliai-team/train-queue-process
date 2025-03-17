@@ -6,7 +6,7 @@ from supabase import Client, create_client
 import os
 import datetime
 import math
-
+import numpy as np
 
 training_id = os.environ.get("TRAINING_ID")
 
@@ -89,15 +89,19 @@ def progress_update(time_elaped, rate, avr_loss, epoch, n, total):
   # }
   setup_cost = 5
   cost = setup_cost + math.ceil(time_elaped * final_price * vnd / credit_value)
+  avr_loss = np.nan_to_num(avr_loss, nan=0.0)
+    
+  progress = {
+    "remaining": remaining,
+    "time_elaped": time_elaped,
+    "avr_loss": avr_loss,
+    "steps": n,
+    "total": total
+  }
 
+  print(progress)
   supabase.table("Trainings").update({
-    'training_process_metadata':{
-      "remaining": remaining,
-      "time_elaped": time_elaped,
-      "avr_loss": avr_loss,
-      "steps": n,
-      "total": total
-    },
+    'training_process_metadata':progress,
     "cost": cost
   }).eq('id', training_id).execute()
 
